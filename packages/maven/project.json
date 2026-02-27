@@ -21,10 +21,7 @@
     "legacy-post-build": {
       "executor": "@nx/workspace-plugin:legacy-post-build",
       "outputs": ["{options.outputPath}"],
-      "dependsOn": [
-        "build-base",
-        "^mvn:package"
-      ],
+      "dependsOn": ["build-base", "^mvn:package"],
       "options": {
         "tsConfig": "./tsconfig.lib.json",
         "outputPath": "packages/maven/dist",
@@ -78,7 +75,6 @@
       "manifestRootsToUpdate": ["{projectRoot}"]
     }
   },
-  "tags": ["maven:dev.nx.maven"],
   "implicitDependencies": [
     "dev.nx.maven:maven-batch-runner",
     "dev.nx.maven:nx-maven-plugin",
