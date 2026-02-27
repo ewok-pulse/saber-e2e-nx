@@ -83,11 +83,6 @@
     "nx-release-publish": {
       "options": { "packageRoot": "dist/packages/{projectName}" }
     },
-    "mvn-*": {
-      "options": {
-        "forwardAllArgs": false
-      }
-    },
     "build": {
       "dependsOn": ["^build", "typecheck", "build-base"],
       "inputs": ["production", "^production"],
@@ -298,7 +293,7 @@
     {
       "plugin": "@nx/maven",
       "options": {
-        "targetNamePrefix": "mvn-"
+        "targetNamePrefix": "mvn:"
       }
     }
   ],
