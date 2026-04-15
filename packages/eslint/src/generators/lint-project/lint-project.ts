@@ -39,7 +39,7 @@ import {
   BASE_ESLINT_CONFIG_FILENAMES,
 } from '../../utils/config-file';
 import { hasEslintPlugin } from '../utils/plugin';
-import { jsoncEslintParserVersion } from '../../utils/versions';
+import { versions } from '../../utils/version-utils';
 import { setupRootEsLint } from './setup-root-eslint';
 import { getProjectType } from '@nx/js/src/utils/typescript/ts-solution-setup';
 
@@ -184,7 +184,7 @@ export async function lintProjectGeneratorInternal(
         addDependenciesToPackageJson(
           tree,
           {},
-          { 'jsonc-eslint-parser': jsoncEslintParserVersion },
+          { 'jsonc-eslint-parser': versions(tree).jsoncEslintParserVersion },
           undefined,
           true
         )

@@ -10,7 +10,8 @@ import {
   updateNxJson,
 } from '@nx/devkit';
 import { addPlugin } from '@nx/devkit/src/utils/add-plugin';
-import { eslintVersion, nxVersion } from '../../utils/versions';
+import { nxVersion } from '../../utils/versions';
+import { versions } from '../../utils/version-utils';
 import {
   determineEslintConfigFormat,
   findEslintFile,
@@ -155,10 +156,10 @@ export async function initEsLint(
         {},
         {
           '@nx/eslint': nxVersion,
-          eslint: eslintVersion,
+          eslint: versions(tree).eslintVersion,
         },
         undefined,
-        options.keepExistingVersions
+        options.keepExistingVersions ?? true
       )
     );
   }

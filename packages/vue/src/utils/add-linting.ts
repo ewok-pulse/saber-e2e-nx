@@ -14,20 +14,11 @@ import {
   updateOverrideInLintConfig,
 } from '@nx/eslint/src/generators/utils/eslint-file';
 import { useFlatConfig } from '@nx/eslint/src/utils/flat-config';
-import {
-  getInstalledEslintVersion,
-  getTypeScriptEslintVersionToInstall,
-} from '@nx/eslint/src/utils/version-utils';
+import { versions as eslintPkgVersions } from '@nx/eslint/src/utils/version-utils';
 import type { Linter as EsLintLinter } from 'eslint';
 import { Tree } from 'nx/src/generators/tree';
 import { joinPathFragments } from 'nx/src/utils/path';
-import {
-  eslint9__VueEslintConfigTypescriptVersion,
-  eslintPluginVueVersion,
-  vueEslintConfigPrettierVersion,
-  vueEslintConfigTypescriptVersion,
-} from './versions';
-import { lt } from 'semver';
+import { versions } from './version-utils';
 
 export async function addLinting(
   host: Tree,
@@ -77,28 +68,28 @@ export async function addLinting(
 
     editEslintConfigFiles(host, options.projectRoot);
 
-    const eslintVersion = getInstalledEslintVersion(host);
-    const devDependencies = {
-      '@vue/eslint-config-prettier': vueEslintConfigPrettierVersion,
+    const pkgVersions = versions(host);
+    const devDependencies: Record<string, string> = {
+      '@vue/eslint-config-prettier': pkgVersions.vueEslintConfigPrettierVersion,
       '@vue/eslint-config-typescript':
-        eslintVersion && lt(eslintVersion, '9.0.0')
-          ? vueEslintConfigTypescriptVersion
-          : eslint9__VueEslintConfigTypescriptVersion,
-      'eslint-plugin-vue': eslintPluginVueVersion,
+        pkgVersions.vueEslintConfigTypescriptVersion,
+      'eslint-plugin-vue': pkgVersions.eslintPluginVueVersion,
     };
     if (
       isEslintConfigSupported(host, options.projectRoot) &&
       useFlatConfig(host)
     ) {
       devDependencies['@typescript-eslint/parser'] =
-        getTypeScriptEslintVersionToInstall(host);
+        eslintPkgVersions(host).typescriptESLintVersion;
     }
 
     if (!options.skipPackageJson) {
       const installTask = addDependenciesToPackageJson(
         host,
         {},
-        devDependencies
+        devDependencies,
+        undefined,
+        true
       );
       tasks.push(installTask);
     }

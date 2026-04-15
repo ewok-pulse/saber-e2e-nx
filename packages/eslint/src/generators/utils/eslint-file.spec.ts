@@ -1,6 +1,5 @@
-import { readJson, type Tree } from '@nx/devkit';
+import { readJson, type Tree, updateJson } from '@nx/devkit';
 import { createTreeWithEmptyWorkspace } from '@nx/devkit/testing';
-import * as devkitInternals from 'nx/src/devkit-internals';
 import {
   BASE_ESLINT_CONFIG_FILENAMES,
   ESLINT_CONFIG_FILENAMES,
@@ -122,10 +121,11 @@ describe('@nx/eslint:lint-file', () => {
     });
 
     it('should install necessary dependencies', () => {
-      // mock eslint version
-      jest.spyOn(devkitInternals, 'readModulePackageJson').mockReturnValue({
-        packageJson: { name: 'eslint', version: '9.0.0' },
-        path: '',
+      // Declare eslint v9 in the workspace.
+      updateJson(tree, 'package.json', (json) => {
+        json.devDependencies ??= {};
+        json.devDependencies.eslint = '^9.0.0';
+        return json;
       });
       tree.write('eslint.config.cjs', 'module.exports = {};');
       tree.write(
@@ -154,8 +154,9 @@ module.exports = [
       expect(readJson(tree, 'package.json').devDependencies)
         .toMatchInlineSnapshot(`
         {
-          "@eslint/compat": "^1.1.1",
-          "@eslint/eslintrc": "^2.1.1",
+          "@eslint/compat": "^1.4.1",
+          "@eslint/eslintrc": "^3.3.0",
+          "eslint": "^9.0.0",
         }
       `);
     });
@@ -211,10 +212,11 @@ module.exports = [
     });
 
     it('should add wrapped plugin for compat in extends when using eslint v9', () => {
-      // mock eslint version
-      jest.spyOn(devkitInternals, 'readModulePackageJson').mockReturnValue({
-        packageJson: { name: 'eslint', version: '9.0.0' },
-        path: '',
+      // Declare eslint v9 in the workspace.
+      updateJson(tree, 'package.json', (json) => {
+        json.devDependencies ??= {};
+        json.devDependencies.eslint = '^9.0.0';
+        return json;
       });
       tree.write('eslint.config.cjs', 'module.exports = {};');
       tree.write(
@@ -270,10 +272,11 @@ module.exports = [
     });
 
     it('should handle mixed multiple incompatible and compatible plugins and add them to extends in the specified order when using eslint v9', () => {
-      // mock eslint version
-      jest.spyOn(devkitInternals, 'readModulePackageJson').mockReturnValue({
-        packageJson: { name: 'eslint', version: '9.0.0' },
-        path: '',
+      // Declare eslint v9 in the workspace.
+      updateJson(tree, 'package.json', (json) => {
+        json.devDependencies ??= {};
+        json.devDependencies.eslint = '^9.0.0';
+        return json;
       });
       tree.write('eslint.config.cjs', 'module.exports = {};');
       tree.write(
@@ -341,10 +344,12 @@ module.exports = [
     });
 
     it('should not add wrapped plugin for compat in extends when not using eslint v9', () => {
-      // mock eslint version
-      jest.spyOn(devkitInternals, 'readModulePackageJson').mockReturnValue({
-        packageJson: { name: 'eslint', version: '8.0.0' },
-        path: '',
+      // Declare eslint v8 in the workspace so the helper picks the
+      // pre-flat-config branch.
+      updateJson(tree, 'package.json', (json) => {
+        json.devDependencies ??= {};
+        json.devDependencies.eslint = '~8.0.0';
+        return json;
       });
       tree.write('eslint.config.cjs', 'module.exports = {};');
       tree.write(

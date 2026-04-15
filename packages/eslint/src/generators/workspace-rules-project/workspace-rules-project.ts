@@ -18,7 +18,7 @@ import { addSwcRegisterDependencies } from '@nx/js/src/utils/swc/add-swc-depende
 import { isUsingTsSolutionSetup } from '@nx/js/src/utils/typescript/ts-solution-setup';
 import { join } from 'path';
 import { nxVersion } from '../../utils/versions';
-import { getTypeScriptEslintVersionToInstall } from '../../utils/version-utils';
+import { versions } from '../../utils/version-utils';
 import { workspaceLintPluginDir } from '../../utils/workspace-lint-rules';
 
 export const WORKSPACE_RULES_PROJECT_NAME = 'eslint-rules';
@@ -118,14 +118,15 @@ export async function lintWorkspaceRulesProjectGenerator(
   // Add swc dependencies
   tasks.push(addSwcRegisterDependencies(tree));
 
-  const typescriptEslintVersion = getTypeScriptEslintVersionToInstall(tree);
   tasks.push(
     addDependenciesToPackageJson(
       tree,
       {},
       {
-        '@typescript-eslint/utils': typescriptEslintVersion,
-      }
+        '@typescript-eslint/utils': versions(tree).typescriptESLintVersion,
+      },
+      undefined,
+      true
     )
   );
 

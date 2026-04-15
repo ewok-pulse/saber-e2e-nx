@@ -9,7 +9,7 @@ import {
   updateJson,
 } from '@nx/devkit';
 import type { Linter } from 'eslint';
-import { gte } from 'semver';
+import { coerce } from 'semver';
 import {
   baseEsLintConfigFile,
   ESLINT_CONFIG_FILENAMES,
@@ -20,12 +20,7 @@ import {
   eslintFlatConfigFilenames,
   useFlatConfig,
 } from '../../utils/flat-config';
-import { getInstalledEslintVersion } from '../../utils/version-utils';
-import {
-  eslint9__eslintVersion,
-  eslintCompat,
-  eslintrcVersion,
-} from '../../utils/versions';
+import { versions } from '../../utils/version-utils';
 import {
   addBlockToFlatConfigExport,
   addFlatCompatToFlatConfig,
@@ -438,10 +433,12 @@ export function addExtendsToLintConfig(
           : 'mjs';
 
     let shouldImportEslintCompat = false;
-    // assume eslint version is 9 if not found, as it's what we'd be generating by default
-    const eslintVersion =
-      getInstalledEslintVersion(tree) ?? eslint9__eslintVersion;
-    if (gte(eslintVersion, '9.0.0')) {
+    // Resolve the pins for this workspace's installed ESLint major (falling
+    // back to the latest default when nothing is installed yet, since that's
+    // what we'd be generating for a new workspace).
+    const pkgVersions = versions(tree);
+    const eslintMajor = coerce(pkgVersions.eslintVersion)?.major ?? 0;
+    if (eslintMajor >= 9) {
       // eslint v9 requires the incompatible plugins to be wrapped with a helper from @eslint/compat
       const plugins = (Array.isArray(plugin) ? plugin : [plugin]).map((p) =>
         typeof p === 'string' ? { name: p, needCompatFixup: false } : p
@@ -500,7 +497,10 @@ export function addExtendsToLintConfig(
       return addDependenciesToPackageJson(
         tree,
         {},
-        { '@eslint/compat': eslintCompat, '@eslint/eslintrc': eslintrcVersion },
+        {
+          '@eslint/compat': pkgVersions.eslintCompatVersion,
+          '@eslint/eslintrc': pkgVersions.eslintrcVersion,
+        },
         undefined,
         true
       );
@@ -509,7 +509,7 @@ export function addExtendsToLintConfig(
     return addDependenciesToPackageJson(
       tree,
       {},
-      { '@eslint/eslintrc': eslintrcVersion },
+      { '@eslint/eslintrc': pkgVersions.eslintrcVersion },
       undefined,
       true
     );

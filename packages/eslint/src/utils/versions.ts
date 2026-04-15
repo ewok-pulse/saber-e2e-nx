@@ -1,12 +1,14 @@
 export const nxVersion = require('../../package.json').version;
 
-export const eslintVersion = '~8.57.0';
-export const eslintrcVersion = '^2.1.1';
+// ESLint core
+export const eslintVersion = '^10.0.0';
+export const eslintJsVersion = '^10.0.0';
+export const eslintrcVersion = '^3.3.0';
 export const eslintConfigPrettierVersion = '^10.0.0';
-export const typescriptESLintVersion = '^7.16.0';
-export const jsoncEslintParserVersion = '^2.1.0';
+export const eslintCompatVersion = '^2.0.5';
 
-// Updated linting stack for ESLint v9, typescript-eslint v8
-export const eslint9__typescriptESLintVersion = '^8.40.0';
-export const eslint9__eslintVersion = '^9.8.0';
-export const eslintCompat = '^1.1.1';
+// typescript-eslint
+export const typescriptESLintVersion = '^8.57.0';
+
+// parsers
+export const jsoncEslintParserVersion = '^2.1.0';

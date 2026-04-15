@@ -11,9 +11,8 @@ export const vitePluginVueVersion = '^6.0.1';
 
 // linting deps
 export const vueEslintConfigPrettierVersion = '^10.2.0';
-export const vueEslintConfigTypescriptVersion = '^11.0.3';
-export const eslint9__VueEslintConfigTypescriptVersion = '^14.6.0';
-export const eslintPluginVueVersion = '^9.16.1';
+export const vueEslintConfigTypescriptVersion = '^14.7.0';
+export const eslintPluginVueVersion = '^10.8.0';
 
 // tailwindcss
 export const postcssVersion = '8.4.21';

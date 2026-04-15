@@ -5,13 +5,8 @@ import {
   type Tree,
 } from '@nx/devkit';
 import { useFlatConfig } from '../../utils/flat-config';
-import {
-  eslint9__eslintVersion,
-  eslint9__typescriptESLintVersion,
-  eslintConfigPrettierVersion,
-  nxVersion,
-  typescriptESLintVersion,
-} from '../../utils/versions';
+import { versions } from '../../utils/version-utils';
+import { nxVersion } from '../../utils/versions';
 import {
   getGlobalEsLintConfiguration,
   getGlobalFlatEslintConfiguration,
@@ -58,18 +53,22 @@ function setUpLegacyRootEslintRc(tree: Tree, options: SetupRootEsLintOptions) {
     tree.write('.eslintignore', 'node_modules\n');
   }
 
-  return !options.skipPackageJson
-    ? addDependenciesToPackageJson(
-        tree,
-        {},
-        {
-          '@nx/eslint-plugin': nxVersion,
-          '@typescript-eslint/parser': typescriptESLintVersion,
-          '@typescript-eslint/eslint-plugin': typescriptESLintVersion,
-          'eslint-config-prettier': eslintConfigPrettierVersion,
-        }
-      )
-    : () => {};
+  if (options.skipPackageJson) {
+    return () => {};
+  }
+  const pkgVersions = versions(tree);
+  return addDependenciesToPackageJson(
+    tree,
+    {},
+    {
+      '@nx/eslint-plugin': nxVersion,
+      '@typescript-eslint/parser': pkgVersions.typescriptESLintVersion,
+      '@typescript-eslint/eslint-plugin': pkgVersions.typescriptESLintVersion,
+      'eslint-config-prettier': pkgVersions.eslintConfigPrettierVersion,
+    },
+    undefined,
+    true
+  );
 }
 
 function setUpRootFlatConfig(tree: Tree, options: SetupRootEsLintOptions) {
@@ -81,17 +80,21 @@ function setUpRootFlatConfig(tree: Tree, options: SetupRootEsLintOptions) {
     )
   );
 
-  return !options.skipPackageJson
-    ? addDependenciesToPackageJson(
-        tree,
-        {},
-        {
-          '@eslint/js': eslint9__eslintVersion,
-          '@nx/eslint-plugin': nxVersion,
-          eslint: eslint9__eslintVersion,
-          'eslint-config-prettier': eslintConfigPrettierVersion,
-          'typescript-eslint': eslint9__typescriptESLintVersion,
-        }
-      )
-    : () => {};
+  if (options.skipPackageJson) {
+    return () => {};
+  }
+  const pkgVersions = versions(tree);
+  return addDependenciesToPackageJson(
+    tree,
+    {},
+    {
+      '@eslint/js': pkgVersions.eslintJsVersion,
+      '@nx/eslint-plugin': nxVersion,
+      eslint: pkgVersions.eslintVersion,
+      'eslint-config-prettier': pkgVersions.eslintConfigPrettierVersion,
+      'typescript-eslint': pkgVersions.typescriptESLintVersion,
+    },
+    undefined,
+    true
+  );
 }
