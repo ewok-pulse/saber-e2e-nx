@@ -86,17 +86,37 @@ export function getPkgVersionForEslintMajor(
 
 /**
  * Returns the full set of package version pins compatible with the ESLint
- * major version installed in the tree. When no ESLint is installed, returns
- * the latest pins (the default for new workspaces). An installed major that
- * is newer than anything we explicitly support also falls back to latest, so
- * new ESLint majors must be added to `backwardCompatibleVersions` when they
- * become the default.
+ * major version installed in the tree.
+ *
+ * When ESLint is already installed, the pins are keyed on its major. An
+ * installed major that is newer than anything we explicitly support falls
+ * back to `latestVersions`, so new ESLint majors must be added to
+ * `backwardCompatibleVersions` when they become the default.
+ *
+ * When no ESLint is installed, the default is `latestVersions` — unless
+ * the user has explicitly opted into legacy eslintrc via
+ * `ESLINT_USE_FLAT_CONFIG=false`, in which case we return the v8 compat
+ * map (the last major that supported eslintrc natively). Without this
+ * check we'd install an ESLint major that can't read the `.eslintrc.json`
+ * we just scaffolded.
+ *
+ * We only check the env var (not `useFlatConfig(tree)`) because the tree-
+ * less fallback in `useFlatConfig` reads the CLI's own `require('eslint')`
+ * version, which is unrelated to what the generator is about to install.
  */
 export function versions(tree: Tree): PackageCompatVersions {
   const majorEslintVersion = getInstalledEslintMajorVersion(tree);
-  return (
-    (majorEslintVersion != null &&
-      backwardCompatibleVersions[majorEslintVersion]) ||
-    latestVersions
-  );
+  const legacyRequested = process.env.ESLINT_USE_FLAT_CONFIG === 'false';
+
+  if (majorEslintVersion != null) {
+    if (legacyRequested && majorEslintVersion >= 10) {
+      throw new Error(
+        `ESLint v${majorEslintVersion} does not support the legacy "eslintrc" configuration format, but ESLINT_USE_FLAT_CONFIG=false was set. ` +
+          `Unset the environment variable to scaffold a flat config, or downgrade ESLint to v9 or lower.`
+      );
+    }
+    return backwardCompatibleVersions[majorEslintVersion] ?? latestVersions;
+  }
+
+  return legacyRequested ? backwardCompatibleVersions[8] : latestVersions;
 }
