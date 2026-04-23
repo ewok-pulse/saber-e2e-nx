@@ -1,20 +1,17 @@
-import type { Socket } from 'net';
-import {
-  PluginWorkerEmitLogNotification,
-  sendMessageOverSocket,
-} from './messaging';
+import type { PluginWorkerEmitLogNotification } from './messaging';
+import type { PluginTransport } from './plugin-transport';
 
-// Plugin workers talk to their host process over a single socket that
+// Plugin workers talk to their host process over a single transport that
 // is established when the host connects. Plugin code running anywhere
 // in the worker process needs a way to emit log lines without having
-// that socket threaded through every call frame, so we stash a
+// that transport threaded through every call frame, so we stash a
 // module-level reference here when the host connects.
-let hostSocket: Socket | null = null;
+let hostTransport: PluginTransport | null = null;
 
-export function setPluginWorkerHostSocket(socket: Socket): void {
-  hostSocket = socket;
-  socket.once('close', () => {
-    if (hostSocket === socket) hostSocket = null;
+export function setPluginWorkerHostTransport(transport: PluginTransport): void {
+  hostTransport = transport;
+  transport.onClose(() => {
+    if (hostTransport === transport) hostTransport = null;
   });
 }
 
@@ -32,11 +29,11 @@ export function emitPluginWorkerLog(
   level: PluginWorkerEmitLogNotification['level'],
   message: string
 ): void {
-  if (!hostSocket) {
+  if (!hostTransport) {
     console[level](message);
     return;
   }
-  sendMessageOverSocket(hostSocket, {
+  hostTransport.send({
     type: 'emitLog',
     level,
     message,

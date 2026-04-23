@@ -1,10 +1,8 @@
 import type { Serializable } from 'child_process';
-import type { Socket } from 'net';
 import type { PluginConfiguration } from '../../../config/nx-json';
 import type { ProjectGraph } from '../../../config/project-graph';
-import { serialize } from '../../../daemon/socket-utils';
-import { MESSAGE_END_SEQ } from '../../../utils/consume-messages-from-socket';
 import type { LoadedNxPlugin } from '../loaded-nx-plugin';
+import type { PluginTransport } from './plugin-transport';
 import type {
   CreateDependenciesContext,
   CreateMetadataContext,
@@ -261,7 +259,7 @@ export function isPluginWorkerResult(
  * Handlers return just the result payload - the infrastructure handles wrapping.
  */
 export async function consumeMessage(
-  socket: Socket,
+  transport: PluginTransport,
   raw: PluginWorkerMessage,
   handlers: Handlers<PluginMessageDefs>
 ): Promise<void> {
@@ -279,21 +277,10 @@ export async function consumeMessage(
   )(message.payload);
 
   if (resultPayload !== undefined && resultPayload !== null) {
-    sendMessageOverSocket(socket, {
+    transport.send({
       type: `${type}Result` as PluginWorkerResult['type'],
       payload: resultPayload,
       tx: message.tx,
     } as PluginWorkerResult);
   }
-}
-
-/**
- * Sends a message over the socket with proper formatting.
- */
-export function sendMessageOverSocket(
-  socket: Socket,
-  message: PluginWorkerMessage | PluginWorkerResult | PluginWorkerNotification
-): void {
-  socket.write(serialize(message));
-  socket.write(MESSAGE_END_SEQ);
 }

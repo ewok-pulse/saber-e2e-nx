@@ -1,5 +1,39 @@
 #!/usr/bin/env node
 
+// HOST-SIDE V8 compile cache — enabled before any substantial require()
+// calls so the host's own module tree is parsed from disk once and reused
+// across invocations. Cache dir is `<workspaceRoot>/.nx/workspace-data/v8-cache`
+// (matches plugin workers' cache), located by walking up from cwd to find
+// nx.json. Host and workers share the same cache dir since V8 keys cache
+// entries by source content, not location.
+//
+// Opt out with `NX_PLUGIN_COMPILE_CACHE=false`. No-op on Node < 22.8 where
+// `module.enableCompileCache` is not yet available.
+(() => {
+  if (process.env.NX_PLUGIN_COMPILE_CACHE === 'false') return;
+  const nodeModule = require('node:module') as {
+    enableCompileCache?: (dir: string) => void;
+  };
+  if (typeof nodeModule.enableCompileCache !== 'function') return;
+  try {
+    const path = require('node:path') as typeof import('node:path');
+    const fs = require('node:fs') as typeof import('node:fs');
+    let dir = process.cwd();
+    while (dir && dir !== path.dirname(dir)) {
+      if (fs.existsSync(path.join(dir, 'nx.json'))) break;
+      dir = path.dirname(dir);
+    }
+    if (!dir) dir = process.cwd();
+    nodeModule.enableCompileCache(
+      path.join(dir, '.nx', 'workspace-data', 'v8-cache')
+    );
+  } catch {
+    // Cache enable is a pure performance optimization and must never break
+    // the CLI. Any error (missing dir, filesystem permissions, etc.) is
+    // silently ignored.
+  }
+})();
+
 // TODO: Remove this workaround once picocolors handles FORCE_COLOR=0 correctly
 // See: https://github.com/alexeyraspopov/picocolors/issues/100
 

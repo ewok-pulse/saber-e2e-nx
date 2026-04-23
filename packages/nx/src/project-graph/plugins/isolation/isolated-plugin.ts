@@ -7,10 +7,6 @@ import type { PluginConfiguration } from '../../../config/nx-json';
 import type { ProjectGraph } from '../../../config/project-graph';
 import { serverLogger } from '../../../daemon/logger';
 import { getPluginOsSocketPath } from '../../../daemon/socket-utils';
-import {
-  consumeMessagesFromSocket,
-  parseMessage,
-} from '../../../utils/consume-messages-from-socket';
 import { getNxRequirePaths } from '../../../utils/installation-directory';
 import { logger } from '../../../utils/logger';
 import { ProgressTopics } from '../../../utils/progress-topics';
@@ -32,18 +28,21 @@ import type {
   PluginWorkerLoadResult,
   PluginWorkerMessage,
   PluginWorkerNotification,
-  PluginWorkerResult,
 } from './messaging';
+import { isPluginWorkerNotification, isPluginWorkerResult } from './messaging';
+import { Worker as NodeWorker } from 'node:worker_threads';
 import {
-  isPluginWorkerNotification,
-  isPluginWorkerResult,
-  sendMessageOverSocket,
-} from './messaging';
+  PluginTransport,
+  PluginTransportMessage,
+  SocketTransport,
+  WorkerThreadTransport,
+} from './plugin-transport';
 import {
   Hook,
   Phase,
   PluginLifecycleManager,
 } from './plugin-lifecycle-manager';
+import { getPluginWorkerTransport } from './transport-flag';
 
 const PLUGIN_TIMEOUT_HINT_TEXT =
   'As a last resort, you can set NX_PLUGIN_NO_TIMEOUTS=true to bypass this timeout.';
@@ -94,8 +93,8 @@ export class IsolatedPlugin implements LoadedNxPlugin {
   ) => Promise<void>;
 
   // Worker state
-  private worker: ChildProcess | null = null;
-  private socket: Socket | null = null;
+  private worker: ChildProcess | NodeWorker | null = null;
+  private transport: PluginTransport | null = null;
   private _alive = false;
   private _connectPromise: Promise<LoadResultPayload> | null = null;
   private txId = 0;
@@ -105,7 +104,7 @@ export class IsolatedPlugin implements LoadedNxPlugin {
   private responseHandlers = new Map<
     string,
     {
-      onMessage: (msg: PluginWorkerResult) => void;
+      onMessage: (msg: PluginTransportMessage) => void;
       onError: (error: Error) => void;
     }
   >();
@@ -161,20 +160,26 @@ export class IsolatedPlugin implements LoadedNxPlugin {
   }
 
   private async spawnAndConnect(): Promise<LoadResultPayload> {
-    const { worker, socket } = await startPluginWorker(this.name);
+    const transportMode = getPluginWorkerTransport();
+    const { worker, transport } =
+      transportMode === 'threads'
+        ? await startPluginWorkerThread(this.name)
+        : await startPluginWorker(this.name);
     this.worker = worker;
-    this.socket = socket;
+    this.transport = transport;
 
     this.registerProcessMetrics();
 
     this.exitHandler = () => {
       this._alive = false;
       this._connectPromise = null;
-      if (this.worker?.stdout) {
-        this.worker.stdout.unpipe(process.stdout);
-      }
-      if (this.worker?.stderr) {
-        this.worker.stderr.unpipe(process.stderr);
+      if (this.worker && isChildProcess(this.worker)) {
+        if (this.worker.stdout) {
+          this.worker.stdout.unpipe(process.stdout);
+        }
+        if (this.worker.stderr) {
+          this.worker.stderr.unpipe(process.stderr);
+        }
       }
       // Reject all pending requests
       const error = new Error(
@@ -185,9 +190,19 @@ export class IsolatedPlugin implements LoadedNxPlugin {
       }
       this.responseHandlers.clear();
     };
-    worker.on('exit', this.exitHandler);
+    if (isChildProcess(worker)) {
+      worker.on('exit', this.exitHandler);
+    } else {
+      worker.on('exit', this.exitHandler);
+      worker.on('error', (err) => {
+        logger.verbose(
+          `[isolated-plugin] worker thread error for "${this.name}": ${err.message}`
+        );
+        this.exitHandler?.();
+      });
+    }
 
-    socket.on('data', consumeMessagesFromSocket(this.handleSocketData));
+    transport.onMessage(this.handleTransportMessage);
 
     return this.sendLoadMessage();
   }
@@ -218,8 +233,7 @@ export class IsolatedPlugin implements LoadedNxPlugin {
     await this._connectPromise;
   }
 
-  private handleSocketData = (raw: string) => {
-    const message = parseMessage<any>(raw);
+  private handleTransportMessage = (message: PluginTransportMessage) => {
     if (isPluginWorkerNotification(message)) {
       handlePluginWorkerNotification(message);
       return;
@@ -270,7 +284,7 @@ export class IsolatedPlugin implements LoadedNxPlugin {
         },
       });
 
-      sendMessageOverSocket(this.socket, {
+      this.transport!.send({
         type: 'load',
         payload: {
           plugin: this.plugin,
@@ -393,7 +407,13 @@ export class IsolatedPlugin implements LoadedNxPlugin {
   }
 
   private generateTxId(type: string): string {
-    return `${this.name}:${this.worker?.pid ?? ''}:${type}:${this.txId++}`;
+    const handle = this.worker;
+    const identifier = handle
+      ? isChildProcess(handle)
+        ? (handle.pid ?? '')
+        : handle.threadId
+      : '';
+    return `${this.name}:${identifier}:${type}:${this.txId++}`;
   }
 
   private sendRequest<TType extends PluginWorkerMessage['type']>(
@@ -428,7 +448,10 @@ export class IsolatedPlugin implements LoadedNxPlugin {
             return;
           }
 
-          resolve(msg.payload as MessageResult<TType>['payload']);
+          resolve(
+            (msg as Extract<PluginTransportMessage, { payload: unknown }>)
+              .payload as MessageResult<TType>['payload']
+          );
         },
         onError: (error) => {
           clearTimeout(timeout);
@@ -437,7 +460,7 @@ export class IsolatedPlugin implements LoadedNxPlugin {
         },
       });
 
-      sendMessageOverSocket(this.socket, {
+      this.transport!.send({
         type,
         payload,
         tx,
@@ -483,25 +506,33 @@ export class IsolatedPlugin implements LoadedNxPlugin {
       this.worker.off('exit', this.exitHandler);
     }
 
-    if (this.worker?.stdout) {
-      this.worker.stdout.unpipe(process.stdout);
-      this.worker.stdout.destroy();
+    if (this.worker && isChildProcess(this.worker)) {
+      if (this.worker.stdout) {
+        this.worker.stdout.unpipe(process.stdout);
+        this.worker.stdout.destroy();
+      }
+      if (this.worker.stderr) {
+        this.worker.stderr.unpipe(process.stderr);
+        this.worker.stderr.destroy();
+      }
     }
-    if (this.worker?.stderr) {
-      this.worker.stderr.unpipe(process.stderr);
-      this.worker.stderr.destroy();
+    if (this.transport) {
+      this.transport.close();
     }
-    if (this.socket) {
-      this.socket.end();
+    if (this.worker && !isChildProcess(this.worker)) {
+      // Fire-and-forget; host doesn't need to await thread teardown.
+      this.worker.terminate().catch(() => {});
     }
 
     this.worker = null;
-    this.socket = null;
+    this.transport = null;
     this.exitHandler = null;
   }
 
   private registerProcessMetrics(): void {
-    if (!this.worker?.pid) return;
+    if (!this.worker || !isChildProcess(this.worker) || !this.worker.pid)
+      return;
+    const workerPid = this.worker.pid;
     (async () => {
       try {
         const { isOnDaemon } = await require(
@@ -512,7 +543,7 @@ export class IsolatedPlugin implements LoadedNxPlugin {
             require.resolve('../../../tasks-runner/process-metrics-service')
           );
           getProcessMetricsService().registerMainCliSubprocess(
-            this.worker.pid,
+            workerPid,
             `${this.name}${this.index !== undefined ? ` (${this.index})` : ''}`
           );
         }
@@ -524,6 +555,12 @@ export class IsolatedPlugin implements LoadedNxPlugin {
 }
 
 // --- Worker Spawning Utilities ---
+
+function isChildProcess(
+  worker: ChildProcess | NodeWorker
+): worker is ChildProcess {
+  return 'kill' in worker && typeof worker.kill === 'function';
+}
 
 global.nxPluginWorkerCount ??= 0;
 
@@ -593,7 +630,10 @@ async function startPluginWorker(name: string) {
 
   try {
     const socket = await connectToWorker(worker, ipcPath, name);
-    return { worker, socket };
+    return {
+      worker,
+      transport: new SocketTransport(socket) as PluginTransport,
+    };
   } finally {
     performance.mark(`start-plugin-worker-end:${name}`);
     performance.measure(
@@ -602,6 +642,79 @@ async function startPluginWorker(name: string) {
       `start-plugin-worker-end:${name}`
     );
   }
+}
+
+async function startPluginWorkerThread(
+  name: string
+): Promise<{ worker: NodeWorker; transport: PluginTransport }> {
+  performance.mark(`start-plugin-worker-thread:${name}`);
+
+  const isWorkerTypescript = path.extname(__filename) === '.ts';
+  const workerPath = path.join(
+    __dirname,
+    isWorkerTypescript ? 'plugin-worker.ts' : 'plugin-worker.js'
+  );
+
+  const execArgv = isWorkerTypescript ? ['--require', 'ts-node/register'] : [];
+
+  const worker = new NodeWorker(workerPath, {
+    workerData: { name },
+    execArgv,
+    stdout: false,
+    stderr: false,
+    env: isWorkerTypescript
+      ? {
+          ...process.env,
+          TS_NODE_PROJECT: path.join(
+            __dirname,
+            '../../../../tsconfig.lib.json'
+          ),
+          TS_NODE_COMPILER_OPTIONS: JSON.stringify({
+            moduleResolution: 'node',
+            module: 'commonjs',
+          }),
+        }
+      : (process.env as NodeJS.ProcessEnv),
+  });
+
+  logger.verbose(
+    `[isolated-plugin] spawned worker thread for "${name}" (threadId: ${worker.threadId})`
+  );
+
+  const transport = new WorkerThreadTransport(workerToMessagePort(worker));
+
+  performance.mark(`start-plugin-worker-thread-end:${name}`);
+  performance.measure(
+    `start-plugin-worker-thread:${name}`,
+    `start-plugin-worker-thread:${name}`,
+    `start-plugin-worker-thread-end:${name}`
+  );
+
+  return { worker, transport };
+}
+
+/**
+ * Adapts a worker_threads.Worker into a MessagePort-compatible shape so
+ * WorkerThreadTransport can talk to it through the same interface that works
+ * on the worker side (where parentPort IS a MessagePort).
+ *
+ * Only the handful of methods WorkerThreadTransport actually uses are
+ * forwarded.
+ */
+function workerToMessagePort(
+  worker: NodeWorker
+): import('worker_threads').MessagePort {
+  return {
+    on: (event: string, handler: (...args: any[]) => void) => {
+      if (event === 'message') worker.on('message', handler);
+      else if (event === 'close') worker.on('exit', handler);
+      return undefined as any;
+    },
+    postMessage: (msg: any) => worker.postMessage(msg),
+    close: () => {
+      // Worker lifecycle is owned by IsolatedPlugin.shutdown via terminate().
+    },
+  } as any;
 }
 
 async function connectToWorker(
