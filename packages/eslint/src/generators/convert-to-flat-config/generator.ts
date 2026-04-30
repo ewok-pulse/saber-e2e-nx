@@ -10,6 +10,7 @@ import {
   ProjectConfiguration,
   readJson,
   readNxJson,
+  TargetConfiguration,
   Tree,
   updateJson,
   updateProjectConfiguration,
@@ -183,15 +184,24 @@ function convertProjectToFlatConfig(
 function updateNxJsonConfig(tree: Tree, format: 'cjs' | 'mjs') {
   if (tree.exists('nx.json')) {
     updateJson(tree, 'nx.json', (json: NxJsonConfiguration) => {
-      if (json.targetDefaults?.lint?.inputs) {
-        const inputSet = new Set(json.targetDefaults.lint.inputs);
+      const addInputToEntry = (entry: Partial<TargetConfiguration>) => {
+        if (!entry?.inputs) return;
+        const inputSet = new Set(entry.inputs);
         inputSet.add(`{workspaceRoot}/eslint.config.${format}`);
-        json.targetDefaults.lint.inputs = Array.from(inputSet);
-      }
-      if (json.targetDefaults?.['@nx/eslint:lint']?.inputs) {
-        const inputSet = new Set(json.targetDefaults['@nx/eslint:lint'].inputs);
-        inputSet.add(`{workspaceRoot}/eslint.config.${format}`);
-        json.targetDefaults['@nx/eslint:lint'].inputs = Array.from(inputSet);
+        entry.inputs = Array.from(inputSet);
+      };
+      const td = json.targetDefaults;
+      if (td) {
+        if (Array.isArray(td)) {
+          for (const entry of td) {
+            if (entry.target === 'lint' || entry.target === '@nx/eslint:lint') {
+              addInputToEntry(entry);
+            }
+          }
+        } else {
+          addInputToEntry(td['lint']);
+          addInputToEntry(td['@nx/eslint:lint']);
+        }
       }
       if (json.namedInputs?.production) {
         const inputSet = new Set(json.namedInputs.production);

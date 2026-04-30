@@ -4,10 +4,17 @@ import {
   readProjectConfiguration,
   updateJson,
   type NxJsonConfiguration,
+  type TargetDefaultsRecord,
   type Tree,
 } from '@nx/devkit';
 import * as devkit from '@nx/devkit';
 import { createTreeWithEmptyWorkspace } from '@nx/devkit/testing';
+
+// This migration ran before targetDefaults supported the array shape, so
+// the test fixtures all use the legacy record shape.
+type LegacyNxJson = Omit<NxJsonConfiguration, 'targetDefaults'> & {
+  targetDefaults?: TargetDefaultsRecord;
+};
 import migration from './replace-nguniversal-builders';
 
 describe('replace-nguniversal-builders migration', () => {
@@ -92,7 +99,7 @@ describe('replace-nguniversal-builders migration', () => {
   ])(
     `should replace "%s" with "%s" from nx.json targetDefaults keys`,
     async (fromExecutor, toExecutor) => {
-      updateJson<NxJsonConfiguration>(tree, 'nx.json', (json) => {
+      updateJson<LegacyNxJson>(tree, 'nx.json', (json) => {
         json.targetDefaults ??= {};
         json.targetDefaults[fromExecutor] = {
           options: {},
@@ -103,14 +110,14 @@ describe('replace-nguniversal-builders migration', () => {
 
       await migration(tree);
 
-      const nxJson = readJson<NxJsonConfiguration>(tree, 'nx.json');
+      const nxJson = readJson<LegacyNxJson>(tree, 'nx.json');
       expect(nxJson.targetDefaults[fromExecutor]).toBeUndefined();
       expect(nxJson.targetDefaults[toExecutor]).toBeDefined();
     }
   );
 
   it('should replace options from nx.json targetDefaults with executor "@nguniversal/builders:prerender" as the key', async () => {
-    updateJson<NxJsonConfiguration>(tree, 'nx.json', (json) => {
+    updateJson<LegacyNxJson>(tree, 'nx.json', (json) => {
       json.targetDefaults ??= {};
       json.targetDefaults['@nguniversal/builders:prerender'] = {
         options: {
@@ -125,7 +132,7 @@ describe('replace-nguniversal-builders migration', () => {
 
     await migration(tree);
 
-    const nxJson = readJson<NxJsonConfiguration>(tree, 'nx.json');
+    const nxJson = readJson<LegacyNxJson>(tree, 'nx.json');
     const { guessRoutes, numProcesses, discoverRoutes } =
       nxJson.targetDefaults['@angular-devkit/build-angular:prerender'].options;
     expect(guessRoutes).toBeUndefined();
@@ -147,7 +154,7 @@ describe('replace-nguniversal-builders migration', () => {
   ])(
     `should replace "%s" with "%s" from nx.json targetDefaults value executors`,
     async (fromExecutor, target, toExecutor) => {
-      updateJson<NxJsonConfiguration>(tree, 'nx.json', (json) => {
+      updateJson<LegacyNxJson>(tree, 'nx.json', (json) => {
         json.targetDefaults ??= {};
         json.targetDefaults[target] = {
           executor: fromExecutor,
@@ -159,13 +166,13 @@ describe('replace-nguniversal-builders migration', () => {
 
       await migration(tree);
 
-      const nxJson = readJson<NxJsonConfiguration>(tree, 'nx.json');
+      const nxJson = readJson<LegacyNxJson>(tree, 'nx.json');
       expect(nxJson.targetDefaults[target].executor).toBe(toExecutor);
     }
   );
 
   it('should replace options from nx.json targetDefaults with executor "@nguniversal/builders:prerender"', async () => {
-    updateJson<NxJsonConfiguration>(tree, 'nx.json', (json) => {
+    updateJson<LegacyNxJson>(tree, 'nx.json', (json) => {
       json.targetDefaults ??= {};
       json.targetDefaults.prerender = {
         executor: '@nguniversal/builders:prerender',
@@ -181,7 +188,7 @@ describe('replace-nguniversal-builders migration', () => {
 
     await migration(tree);
 
-    const nxJson = readJson<NxJsonConfiguration>(tree, 'nx.json');
+    const nxJson = readJson<LegacyNxJson>(tree, 'nx.json');
     const { guessRoutes, numProcesses, discoverRoutes } =
       nxJson.targetDefaults.prerender.options;
     expect(guessRoutes).toBeUndefined();

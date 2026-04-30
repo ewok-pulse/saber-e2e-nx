@@ -4,10 +4,17 @@ import {
   readProjectConfiguration,
   updateJson,
   type NxJsonConfiguration,
+  type TargetDefaultsRecord,
   type Tree,
 } from '@nx/devkit';
 import * as devkit from '@nx/devkit';
 import { createTreeWithEmptyWorkspace } from '@nx/devkit/testing';
+
+// This migration ran before targetDefaults supported the array shape, so
+// the test fixtures all use the legacy record shape.
+type LegacyNxJson = Omit<NxJsonConfiguration, 'targetDefaults'> & {
+  targetDefaults?: TargetDefaultsRecord;
+};
 import migration from './rename-webpack-dev-server';
 
 describe('rename-webpack-dev-server migration', () => {
@@ -59,7 +66,7 @@ describe('rename-webpack-dev-server migration', () => {
   });
 
   it('should replace @nx/angular:webpack-dev-server with @nx/angular:dev-server from nx.json targetDefaults keys', async () => {
-    updateJson<NxJsonConfiguration>(tree, 'nx.json', (json) => {
+    updateJson<LegacyNxJson>(tree, 'nx.json', (json) => {
       json.targetDefaults ??= {};
       json.targetDefaults['@nx/angular:webpack-dev-server'] = {
         options: {},
@@ -70,7 +77,7 @@ describe('rename-webpack-dev-server migration', () => {
 
     await migration(tree);
 
-    const nxJson = readJson<NxJsonConfiguration>(tree, 'nx.json');
+    const nxJson = readJson<LegacyNxJson>(tree, 'nx.json');
     expect(
       nxJson.targetDefaults['@nx/angular:webpack-dev-server']
     ).toBeUndefined();
@@ -78,7 +85,7 @@ describe('rename-webpack-dev-server migration', () => {
   });
 
   it('should replace @nrwl/angular:webpack-dev-server with @nx/angular:dev-server from nx.json targetDefaults keys', async () => {
-    updateJson<NxJsonConfiguration>(tree, 'nx.json', (json) => {
+    updateJson<LegacyNxJson>(tree, 'nx.json', (json) => {
       json.targetDefaults ??= {};
       json.targetDefaults['@nrwl/angular:webpack-dev-server'] = {
         options: {},
@@ -89,7 +96,7 @@ describe('rename-webpack-dev-server migration', () => {
 
     await migration(tree);
 
-    const nxJson = readJson<NxJsonConfiguration>(tree, 'nx.json');
+    const nxJson = readJson<LegacyNxJson>(tree, 'nx.json');
     expect(
       nxJson.targetDefaults['@nrwl/angular:webpack-dev-server']
     ).toBeUndefined();
@@ -97,7 +104,7 @@ describe('rename-webpack-dev-server migration', () => {
   });
 
   it('should replace @nx/angular:webpack-dev-server with @nx/angular:dev-server from nx.json targetDefaults value executors', async () => {
-    updateJson<NxJsonConfiguration>(tree, 'nx.json', (json) => {
+    updateJson<LegacyNxJson>(tree, 'nx.json', (json) => {
       json.targetDefaults ??= {};
       json.targetDefaults.serve = {
         executor: '@nx/angular:webpack-dev-server',
@@ -109,12 +116,12 @@ describe('rename-webpack-dev-server migration', () => {
 
     await migration(tree);
 
-    const nxJson = readJson<NxJsonConfiguration>(tree, 'nx.json');
+    const nxJson = readJson<LegacyNxJson>(tree, 'nx.json');
     expect(nxJson.targetDefaults.serve.executor).toBe('@nx/angular:dev-server');
   });
 
   it('should replace @nrwl/angular:webpack-dev-server with @nx/angular:dev-server from nx.json targetDefaults value executors', async () => {
-    updateJson<NxJsonConfiguration>(tree, 'nx.json', (json) => {
+    updateJson<LegacyNxJson>(tree, 'nx.json', (json) => {
       json.targetDefaults ??= {};
       json.targetDefaults.serve = {
         executor: '@nrwl/angular:webpack-dev-server',
@@ -126,7 +133,7 @@ describe('rename-webpack-dev-server migration', () => {
 
     await migration(tree);
 
-    const nxJson = readJson<NxJsonConfiguration>(tree, 'nx.json');
+    const nxJson = readJson<LegacyNxJson>(tree, 'nx.json');
     expect(nxJson.targetDefaults.serve.executor).toBe('@nx/angular:dev-server');
   });
 });

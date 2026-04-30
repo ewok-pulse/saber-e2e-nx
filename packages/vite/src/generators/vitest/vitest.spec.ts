@@ -360,7 +360,16 @@ describe('vitest generator', () => {
       });
 
       const nxJson = readNxJson(appTree);
-      expect(nxJson.targetDefaults.test.dependsOn).toStrictEqual(['^build']);
+      const td = nxJson.targetDefaults!;
+      const testEntry = Array.isArray(td)
+        ? td.find(
+            (e) =>
+              e.target === 'test' &&
+              e.projects === undefined &&
+              e.source === undefined
+          )
+        : td.test;
+      expect(testEntry?.dependsOn).toStrictEqual(['^build']);
     });
 
     it(`should not duplicate the test target dependency on the deps' build target`, async () => {
@@ -375,7 +384,16 @@ describe('vitest generator', () => {
       });
 
       const nxJson = readNxJson(appTree);
-      expect(nxJson.targetDefaults.test.dependsOn).toStrictEqual(['^build']);
+      const td = nxJson.targetDefaults!;
+      const testEntry = Array.isArray(td)
+        ? td.find(
+            (e) =>
+              e.target === 'test' &&
+              e.projects === undefined &&
+              e.source === undefined
+          )
+        : td.test;
+      expect(testEntry?.dependsOn).toStrictEqual(['^build']);
     });
   });
 });
