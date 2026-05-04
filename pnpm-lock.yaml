@@ -632,6 +632,9 @@ importers:
       '@nx/key':
         specifier: 5.0.4
         version: 5.0.4
+      '@nx/maven':
+        specifier: 23.0.0-beta.7
+        version: 23.0.0-beta.7(nx@23.0.0-beta.7(@swc-node/register@1.11.1(@swc/core@1.15.10(@swc/helpers@0.5.18))(@swc/types@0.1.25)(typescript@5.9.2))(@swc/core@1.15.10(@swc/helpers@0.5.18)))
       '@nx/next':
         specifier: 23.0.0-beta.7
         version: 23.0.0-beta.7(16d7e1c69d00df16a9647a5ef99a2506)
@@ -9945,6 +9948,9 @@ packages:
   '@nx/key@5.0.4':
     resolution: {integrity: sha512-qovQhxJyC0xvM5cL+Ic2EQIU7D4J/VrDBrUMEbWItxFX9WcM46kRPS7ZASEJUgBCg5i24JlbP+ehbBwDvs9Kug==}
     engines: {node: '>= 10'}
+
+  '@nx/maven@23.0.0-beta.7':
+    resolution: {integrity: sha512-Dxm/1cGYjT+E4HyUjUdGm+PwZwlkUu6gUP0R1nRRDXX0iXMsctBzbs8gRmKrNNjAkpWRcnn/LyWHZgjswlhAeg==}
 
   '@nx/module-federation@23.0.0-beta.7':
     resolution: {integrity: sha512-7mBTIQbFUvglbK6TqIKqwjfDVIcCnlLOF40aVjmbzxAMdWsCvNc8rpeHjA1GZIxsdClRRqKckW/io6a22XmSmA==}
@@ -34435,7 +34441,7 @@ snapshots:
       '@module-federation/runtime-tools': 0.21.2
       '@module-federation/sdk': 0.21.2
       btoa: 1.2.1
-      schema-utils: 4.3.2
+      schema-utils: 4.3.3
       upath: 2.0.1
     optionalDependencies:
       typescript: 5.9.2
@@ -36516,6 +36522,15 @@ snapshots:
       '@nx/key-win32-x64-msvc': 5.0.4
     transitivePeerDependencies:
       - debug
+
+  '@nx/maven@23.0.0-beta.7(nx@23.0.0-beta.7(@swc-node/register@1.11.1(@swc/core@1.15.10(@swc/helpers@0.5.18))(@swc/types@0.1.25)(typescript@5.9.2))(@swc/core@1.15.10(@swc/helpers@0.5.18)))':
+    dependencies:
+      '@nx/devkit': 23.0.0-beta.7(nx@23.0.0-beta.7(@swc-node/register@1.11.1(@swc/core@1.15.10(@swc/helpers@0.5.18))(@swc/types@0.1.25)(typescript@5.9.2))(@swc/core@1.15.10(@swc/helpers@0.5.18)))
+      '@xmldom/xmldom': 0.8.11
+      tree-kill: 1.2.2
+      tslib: 2.8.1
+    transitivePeerDependencies:
+      - nx
 
   '@nx/module-federation@23.0.0-beta.7(d53ceb8804bef3e26f833e8c2e71ecd3)':
     dependencies:
