@@ -23,8 +23,17 @@ describe('fixTargetDefaultsInputs', () => {
     // ASSERT
     const nxJson = readNxJson(tree);
     expect(nxJson.targetDefaults).toMatchInlineSnapshot(`
-      {
-        "@nx/angular:webpack-browser": {
+      [
+        {
+          "cache": true,
+          "target": "build",
+        },
+        {
+          "cache": true,
+          "target": "lint",
+        },
+        {
+          "executor": "@nx/angular:webpack-browser",
           "inputs": [
             "production",
             "^production",
@@ -33,13 +42,7 @@ describe('fixTargetDefaultsInputs', () => {
             },
           ],
         },
-        "build": {
-          "cache": true,
-        },
-        "lint": {
-          "cache": true,
-        },
-      }
+      ]
     `);
   });
 
@@ -104,8 +107,17 @@ describe('fixTargetDefaultsInputs', () => {
     // ASSERT
     nxJson = readNxJson(tree);
     expect(nxJson.targetDefaults).toMatchInlineSnapshot(`
-      {
-        "@nx/angular:webpack-browser": {
+      [
+        {
+          "cache": true,
+          "target": "build",
+        },
+        {
+          "cache": true,
+          "target": "lint",
+        },
+        {
+          "executor": "@nx/angular:webpack-browser",
           "inputs": [
             "^build",
             "production",
@@ -115,13 +127,7 @@ describe('fixTargetDefaultsInputs', () => {
             },
           ],
         },
-        "build": {
-          "cache": true,
-        },
-        "lint": {
-          "cache": true,
-        },
-      }
+      ]
     `);
   });
 });

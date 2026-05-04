@@ -115,19 +115,31 @@ function replacePackageInNxJson(
 
   let needsUpdate = false;
 
-  for (const [targetName, targetConfig] of Object.entries(
-    nxJson.targetDefaults ?? {}
-  )) {
-    if (!targetConfig.executor) {
-      continue;
+  const td = nxJson.targetDefaults;
+  if (Array.isArray(td)) {
+    for (const entry of td) {
+      // Rewrite both the `executor` field and a record-style executor key
+      // promoted to an entry (executor === undefined; target === '@old/pkg:foo').
+      if (entry.executor) {
+        const [pkg, executorName] = entry.executor.split(':');
+        if (pkg === oldPackageName) {
+          needsUpdate = true;
+          entry.executor = newPackageName + ':' + executorName;
+        }
+      }
     }
+  } else if (td) {
+    for (const [targetName, targetConfig] of Object.entries(td)) {
+      if (!targetConfig.executor) {
+        continue;
+      }
 
-    const [pkg, executorName] = targetConfig.executor.split(':');
-    if (pkg === oldPackageName) {
-      needsUpdate = true;
+      const [pkg, executorName] = targetConfig.executor.split(':');
+      if (pkg === oldPackageName) {
+        needsUpdate = true;
 
-      nxJson.targetDefaults[targetName].executor =
-        newPackageName + ':' + executorName;
+        td[targetName].executor = newPackageName + ':' + executorName;
+      }
     }
   }
 

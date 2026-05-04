@@ -16,6 +16,8 @@ import {
   updateNxJson,
   updateProjectConfiguration,
 } from '@nx/devkit';
+import { upsertTargetDefault } from '@nx/devkit/src/generators/target-defaults-utils';
+import { normalizeTargetDefaults } from '@nx/devkit/src/utils/normalize-target-defaults';
 import { assertNotUsingTsSolutionSetup } from '@nx/js/src/utils/typescript/ts-solution-setup';
 import { coerce, major } from 'semver';
 import { warnCypressExecutorScaffolding } from '../../utils/deprecation';
@@ -199,17 +201,26 @@ function updateNxJsonConfiguration(tree: Tree, hasPlugin: boolean) {
     ) {
       cacheableOperations.push('component-test');
     }
-    nxJson.targetDefaults ??= {};
-    nxJson.targetDefaults['component-test'] ??= {};
-    nxJson.targetDefaults['component-test'].cache ??= true;
-
-    nxJson.targetDefaults['component-test'] ??= {};
-    nxJson.targetDefaults['component-test'].inputs ??= [
-      'default',
-      productionFileSet ? '^production' : '^default',
-    ];
   }
   updateNxJson(tree, nxJson);
+
+  if (!hasPlugin) {
+    const existing = normalizeTargetDefaults(nxJson.targetDefaults).find(
+      (e) =>
+        e.target === 'component-test' &&
+        e.executor === undefined &&
+        e.projects === undefined &&
+        e.source === undefined
+    );
+    upsertTargetDefault(tree, {
+      target: 'component-test',
+      cache: existing?.cache ?? true,
+      inputs: existing?.inputs ?? [
+        'default',
+        productionFileSet ? '^production' : '^default',
+      ],
+    });
+  }
 }
 
 export function updateTsConfigForComponentTesting(

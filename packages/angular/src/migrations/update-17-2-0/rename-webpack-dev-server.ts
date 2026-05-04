@@ -32,20 +32,31 @@ export default async function (tree: Tree) {
     return;
   }
 
-  for (const [targetOrExecutor, targetConfig] of Object.entries(
-    nxJson.targetDefaults
-  )) {
-    if (targetOrExecutor === '@nx/angular:webpack-dev-server') {
-      nxJson.targetDefaults['@nx/angular:dev-server'] = targetConfig;
-      delete nxJson.targetDefaults['@nx/angular:webpack-dev-server'];
-    } else if (targetOrExecutor === '@nrwl/angular:webpack-dev-server') {
-      nxJson.targetDefaults['@nx/angular:dev-server'] = targetConfig;
-      delete nxJson.targetDefaults['@nrwl/angular:webpack-dev-server'];
-    } else if (
-      targetConfig.executor === '@nx/angular:webpack-dev-server' ||
-      targetConfig.executor === '@nrwl/angular:webpack-dev-server'
-    ) {
-      targetConfig.executor = '@nx/angular:dev-server';
+  if (Array.isArray(nxJson.targetDefaults)) {
+    for (const entry of nxJson.targetDefaults) {
+      if (
+        entry.executor === '@nx/angular:webpack-dev-server' ||
+        entry.executor === '@nrwl/angular:webpack-dev-server'
+      ) {
+        entry.executor = '@nx/angular:dev-server';
+      }
+    }
+  } else {
+    for (const [targetOrExecutor, targetConfig] of Object.entries(
+      nxJson.targetDefaults
+    )) {
+      if (targetOrExecutor === '@nx/angular:webpack-dev-server') {
+        nxJson.targetDefaults['@nx/angular:dev-server'] = targetConfig;
+        delete nxJson.targetDefaults['@nx/angular:webpack-dev-server'];
+      } else if (targetOrExecutor === '@nrwl/angular:webpack-dev-server') {
+        nxJson.targetDefaults['@nx/angular:dev-server'] = targetConfig;
+        delete nxJson.targetDefaults['@nrwl/angular:webpack-dev-server'];
+      } else if (
+        targetConfig.executor === '@nx/angular:webpack-dev-server' ||
+        targetConfig.executor === '@nrwl/angular:webpack-dev-server'
+      ) {
+        targetConfig.executor = '@nx/angular:dev-server';
+      }
     }
   }
 

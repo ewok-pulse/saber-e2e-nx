@@ -1,12 +1,12 @@
 import {
   getProjects,
   type Tree,
-  type ProjectConfiguration,
   joinPathFragments,
   formatFiles,
   readNxJson,
-  updateNxJson,
 } from '@nx/devkit';
+import { upsertTargetDefault } from '@nx/devkit/src/generators/target-defaults-utils';
+import { normalizeTargetDefaults } from '@nx/devkit/src/utils/normalize-target-defaults';
 
 export default async function (tree: Tree) {
   if (!isWebpackBrowserUsed(tree)) {
@@ -22,35 +22,37 @@ function ensureTargetDefaultsContainProductionInputs(tree: Tree) {
   const webpackExecutor = '@nx/angular:webpack-browser';
   const mfEnvVar = 'NX_MF_DEV_SERVER_STATIC_REMOTES';
 
-  nxJson.targetDefaults[webpackExecutor] ??= {};
+  const existing = normalizeTargetDefaults(nxJson?.targetDefaults).find(
+    (e) =>
+      e.executor === webpackExecutor &&
+      e.target === undefined &&
+      e.projects === undefined &&
+      e.source === undefined
+  );
 
-  nxJson.targetDefaults[webpackExecutor].inputs ??= [
-    'production',
-    '^production',
-    { env: mfEnvVar },
+  const inputs = [
+    ...(existing?.inputs ?? ['production', '^production', { env: mfEnvVar }]),
   ];
 
-  if (!nxJson.targetDefaults[webpackExecutor].inputs.includes('production')) {
-    nxJson.targetDefaults[webpackExecutor].inputs.push('production');
+  if (!inputs.includes('production')) {
+    inputs.push('production');
   }
-
-  if (!nxJson.targetDefaults[webpackExecutor].inputs.includes('^production')) {
-    nxJson.targetDefaults[webpackExecutor].inputs.push('^production');
+  if (!inputs.includes('^production')) {
+    inputs.push('^production');
   }
 
   let mfEnvVarExists = false;
-  for (const input of nxJson.targetDefaults[webpackExecutor].inputs) {
+  for (const input of inputs) {
     if (typeof input === 'object' && input['env'] === mfEnvVar) {
       mfEnvVarExists = true;
       break;
     }
   }
-
   if (!mfEnvVarExists) {
-    nxJson.targetDefaults[webpackExecutor].inputs.push({ env: mfEnvVar });
+    inputs.push({ env: mfEnvVar });
   }
 
-  updateNxJson(tree, nxJson);
+  upsertTargetDefault(tree, { executor: webpackExecutor, inputs });
 }
 
 function isWebpackBrowserUsed(tree: Tree) {
