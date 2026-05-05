@@ -23,12 +23,21 @@ describe('addMfEnvVarToTargetDefaults', () => {
     // ASSERT
     const nxJson = readNxJson(tree);
     expect(nxJson.targetDefaults).toMatchInlineSnapshot(`
-      {
-        "@nx/angular:webpack-browser": {
+      [
+        {
+          "cache": true,
+          "target": "build",
+        },
+        {
+          "cache": true,
+          "target": "lint",
+        },
+        {
           "cache": true,
           "dependsOn": [
             "^build",
           ],
+          "executor": "@nx/angular:webpack-browser",
           "inputs": [
             "default",
             "^default",
@@ -37,13 +46,7 @@ describe('addMfEnvVarToTargetDefaults', () => {
             },
           ],
         },
-        "build": {
-          "cache": true,
-        },
-        "lint": {
-          "cache": true,
-        },
-      }
+      ]
     `);
   });
 
@@ -108,12 +111,21 @@ describe('addMfEnvVarToTargetDefaults', () => {
     // ASSERT
     nxJson = readNxJson(tree);
     expect(nxJson.targetDefaults).toMatchInlineSnapshot(`
-      {
-        "@nx/angular:webpack-browser": {
+      [
+        {
+          "cache": true,
+          "target": "build",
+        },
+        {
+          "cache": true,
+          "target": "lint",
+        },
+        {
           "cache": true,
           "dependsOn": [
             "^build",
           ],
+          "executor": "@nx/angular:webpack-browser",
           "inputs": [
             "^build",
             {
@@ -121,13 +133,7 @@ describe('addMfEnvVarToTargetDefaults', () => {
             },
           ],
         },
-        "build": {
-          "cache": true,
-        },
-        "lint": {
-          "cache": true,
-        },
-      }
+      ]
     `);
   });
 });
