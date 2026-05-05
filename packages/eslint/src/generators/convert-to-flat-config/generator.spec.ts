@@ -17,6 +17,15 @@ import { lintProjectGenerator } from '../lint-project/lint-project';
 import { eslintrcVersion } from '../../utils/versions';
 import { dump } from '@zkochan/js-yaml';
 
+function getLintInputs(nxJson: NxJsonConfiguration): string[] {
+  const td = nxJson.targetDefaults;
+  if (!td) return [];
+  const entry = Array.isArray(td)
+    ? td.find((e) => e.target === 'lint' || e.target === '@nx/eslint:lint')
+    : (td['lint'] ?? td['@nx/eslint:lint']);
+  return (entry?.inputs ?? []) as string[];
+}
+
 describe('convert-to-flat-config generator', () => {
   let tree: Tree;
 
@@ -96,7 +105,7 @@ describe('convert-to-flat-config generator', () => {
       ).toMatchSnapshot();
       // check nx.json changes
       const nxJson = readJson(tree, 'nx.json');
-      expect(nxJson.targetDefaults.lint.inputs).toContain(
+      expect(getLintInputs(nxJson)).toContain(
         '{workspaceRoot}/eslint.config.cjs'
       );
       expect(nxJson.namedInputs.production).toContain(
@@ -127,7 +136,7 @@ describe('convert-to-flat-config generator', () => {
       ).toMatchSnapshot();
       // check nx.json changes
       const nxJson = readJson(tree, 'nx.json');
-      expect(nxJson.targetDefaults.lint.inputs).toContain(
+      expect(getLintInputs(nxJson)).toContain(
         '{workspaceRoot}/eslint.config.cjs'
       );
       expect(nxJson.namedInputs.production).toContain(
@@ -158,7 +167,7 @@ describe('convert-to-flat-config generator', () => {
       ).toMatchSnapshot();
       // check nx.json changes
       const nxJson = readJson(tree, 'nx.json');
-      expect(nxJson.targetDefaults.lint.inputs).toContain(
+      expect(getLintInputs(nxJson)).toContain(
         '{workspaceRoot}/eslint.config.cjs'
       );
       expect(nxJson.namedInputs.production).toContain(
@@ -696,7 +705,7 @@ describe('convert-to-flat-config generator', () => {
       ).toMatchSnapshot();
       // check nx.json changes
       const nxJson = readJson(tree, 'nx.json');
-      expect(nxJson.targetDefaults.lint.inputs).toContain(
+      expect(getLintInputs(nxJson)).toContain(
         '{workspaceRoot}/eslint.config.mjs'
       );
       expect(nxJson.namedInputs.production).toContain(
@@ -727,7 +736,7 @@ describe('convert-to-flat-config generator', () => {
       ).toMatchSnapshot();
       // check nx.json changes
       const nxJson = readJson(tree, 'nx.json');
-      expect(nxJson.targetDefaults.lint.inputs).toContain(
+      expect(getLintInputs(nxJson)).toContain(
         '{workspaceRoot}/eslint.config.mjs'
       );
       expect(nxJson.namedInputs.production).toContain(
@@ -758,7 +767,7 @@ describe('convert-to-flat-config generator', () => {
       ).toMatchSnapshot();
       // check nx.json changes
       const nxJson = readJson(tree, 'nx.json');
-      expect(nxJson.targetDefaults.lint.inputs).toContain(
+      expect(getLintInputs(nxJson)).toContain(
         '{workspaceRoot}/eslint.config.mjs'
       );
       expect(nxJson.namedInputs.production).toContain(
