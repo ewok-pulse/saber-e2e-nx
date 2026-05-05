@@ -4151,6 +4151,9 @@ importers:
       enquirer:
         specifier: 'catalog:'
         version: 2.3.6
+      nx:
+        specifier: workspace:*
+        version: link:../nx
       picomatch:
         specifier: 'catalog:'
         version: 4.0.4
@@ -4163,10 +4166,6 @@ importers:
       yargs-parser:
         specifier: 'catalog:'
         version: 21.1.1
-    devDependencies:
-      nx:
-        specifier: workspace:*
-        version: link:../nx
 
   tools/workspace-plugin:
     dependencies:

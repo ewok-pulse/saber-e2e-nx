@@ -14,6 +14,16 @@ The user provides a package name (e.g., `js`, `webpack`, `angular`). The package
 
 ## Steps
 
+### 0. Preflight: check `workspace:*` deps for unmigrated packages
+
+Read `packages/<name>/package.json` and list every `workspace:*` dep (in `dependencies`, `devDependencies`, `peerDependencies`).
+
+For each such dep, look at the target package's `project.json`. If it does **not** override `release.version.manifestRootsToUpdate` to `["packages/{projectName}"]`, that target package is still on the old layout. You **must** migrate those packages too (apply this skill to each), in the same PR.
+
+**Why:** With `preserveLocalDependencyProtocols: true` (the new pattern), `nx release version` does not substitute `workspace:*` in your manifest. At publish time, pnpm resolves `workspace:*` by reading the target's _source_ `packages/<dep>/package.json`. The default `manifestRootsToUpdate: ["dist/packages/{projectName}"]` only bumps the dist copy, so pnpm picks up the unbumped source `0.0.1` and publishes your package with a dep on a version that does not exist in the registry. Local registry installs then fail with `ERR_PNPM_NO_MATCHING_VERSION`.
+
+A `workspace:*` dep on a still-on-old-layout package is a hard blocker — migrate it before continuing.
+
 ### 1. Read current state
 
 Read these files for the target package:

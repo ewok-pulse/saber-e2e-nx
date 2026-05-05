@@ -135,6 +135,7 @@ packages/maven/README.md
 packages/nx/README.md
 packages/devkit/README.md
 packages/js/README.md
+packages/workspace/README.md
 
 test-output
 test-results
@@ -158,5 +159,7 @@ packages/nx/**/*.d.ts
 !packages/nx/src/native/dts-header.d.ts
 packages/js/**/*.d.ts
 !packages/js/src/**/schema.d.ts
+packages/workspace/**/*.d.ts
+!packages/workspace/src/**/schema.d.ts
 e2e/**/*.d.ts
 e2e/**/*.d.ts.map
