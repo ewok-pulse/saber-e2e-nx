@@ -23,6 +23,7 @@ import {
 import { join } from 'node:path/posix';
 import type { PackageJson } from 'nx/src/utils/package-json';
 import { ensureDependencies } from '../../utils/ensure-dependencies';
+import { warnViteExecutorScaffolding } from '../../utils/deprecation';
 import {
   addBuildTarget,
   addPreviewTarget,
@@ -103,6 +104,15 @@ export async function viteConfigurationGeneratorInternal(
   );
 
   if (!hasPlugin) {
+    const willScaffoldExecutorTargets =
+      !projectAlreadyHasViteTargets.build ||
+      (!schema.includeLib &&
+        (!projectAlreadyHasViteTargets.serve ||
+          !projectAlreadyHasViteTargets.preview));
+    if (willScaffoldExecutorTargets) {
+      warnViteExecutorScaffolding();
+    }
+
     if (!projectAlreadyHasViteTargets.build) {
       addBuildTarget(tree, schema, 'build');
     }
