@@ -1,4 +1,5 @@
 import { getDependencyVersionFromPackageJson, type Tree } from '@nx/devkit';
+import { throwForUnsupportedVersion } from '@nx/devkit/internal';
 import { clean, coerce, major } from 'semver';
 import {
   backwardCompatibleVersions,
@@ -9,6 +10,8 @@ import {
 } from '../../utils/backward-compatible-versions';
 import * as latestVersions from '../../utils/versions';
 import { angularVersion } from '../../utils/versions';
+
+const minSupportedAngularMajor = Math.min(...supportedVersions);
 
 export function getInstalledAngularDevkitVersion(tree: Tree): string | null {
   return (
@@ -66,6 +69,28 @@ export function versions(
   tree: Tree,
   options?: { minAngularMajorVersion: SupportedVersion }
 ): PackageCompatVersions {
+  const detectedAngularVersion = getDependencyVersionFromPackageJson(
+    tree,
+    '@angular/core'
+  );
+  if (
+    detectedAngularVersion &&
+    detectedAngularVersion !== 'latest' &&
+    detectedAngularVersion !== 'next'
+  ) {
+    const cleaned =
+      clean(detectedAngularVersion) ??
+      coerce(detectedAngularVersion)?.version ??
+      null;
+    if (cleaned && major(cleaned) < minSupportedAngularMajor) {
+      throwForUnsupportedVersion(
+        '@angular/core',
+        detectedAngularVersion,
+        `${minSupportedAngularMajor}.0.0`
+      );
+    }
+  }
+
   const majorAngularVersion = getInstalledAngularMajorVersion(tree);
 
   if (

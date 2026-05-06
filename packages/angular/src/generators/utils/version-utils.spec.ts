@@ -4,6 +4,7 @@ import { createTreeWithEmptyWorkspace } from '@nx/devkit/testing';
 import {
   getInstalledAngularMajorVersion,
   getInstalledAngularVersion,
+  versions,
 } from './version-utils';
 
 describe('angularVersionUtils', () => {
@@ -103,6 +104,35 @@ catalogs:
 
       expect(getInstalledAngularVersion(tree)).toBe('17.3.0');
       expect(getInstalledAngularMajorVersion(tree)).toBe(17);
+    });
+  });
+
+  describe('versions()', () => {
+    it('throws when the installed @angular/core major is below the supported floor', () => {
+      const tree = createTreeWithEmptyWorkspace();
+      updateJson(tree, 'package.json', (json) => ({
+        ...json,
+        dependencies: { '@angular/core': '~18.2.0' },
+      }));
+
+      expect(() => versions(tree)).toThrow(
+        /Unsupported version of `@angular\/core` detected/
+      );
+    });
+
+    it('does not throw when @angular/core is not installed (fresh-install path)', () => {
+      const tree = createTreeWithEmptyWorkspace();
+      expect(() => versions(tree)).not.toThrow();
+    });
+
+    it('does not throw when @angular/core is installed within the supported window', () => {
+      const tree = createTreeWithEmptyWorkspace();
+      updateJson(tree, 'package.json', (json) => ({
+        ...json,
+        dependencies: { '@angular/core': '~19.2.0' },
+      }));
+
+      expect(() => versions(tree)).not.toThrow();
     });
   });
 });
