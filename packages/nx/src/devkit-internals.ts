@@ -47,3 +47,6 @@ export { globalSpinner } from './utils/spinner';
 export { signalToCode } from './utils/exit-codes';
 export { handleImport } from './utils/handle-import';
 export { PluginCache, safeWriteFileCache } from './utils/plugin-cache-utils';
+export { HashPlanInspector } from './hasher/hash-plan-inspector';
+export type { TaskFileResolver } from './hasher/task-file-resolver';
+export { createTaskFileResolver } from './hasher/task-file-resolver';
