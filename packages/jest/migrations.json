@@ -42,6 +42,11 @@
       },
       "description": "Replace removed matcher aliases in Jest v30 with their corresponding matcher",
       "implementation": "./src/migrations/update-21-3-0/replace-removed-matcher-aliases"
+    },
+    "migrate-jest-executor-setup-file": {
+      "version": "23.0.0-beta.8",
+      "description": "Migrate the deprecated `setupFile` option of the `@nx/jest:jest` executor: push the file path into `setupFilesAfterEnv` in the project's Jest config and remove the option from `project.json` and `nx.json` target defaults.",
+      "implementation": "./src/migrations/update-23-0-0/migrate-jest-executor-setup-file"
     }
   },
   "packageJsonUpdates": {

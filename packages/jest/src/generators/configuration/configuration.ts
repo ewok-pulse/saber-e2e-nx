@@ -29,7 +29,6 @@ const schemaDefaults = {
   setupFile: 'none',
   babelJest: false,
   supportTsx: false,
-  skipSetupFile: false,
   skipSerializers: false,
   testEnvironment: 'jsdom',
 } as const;
@@ -62,11 +61,6 @@ function normalizeOptions(
     ['swc', 'babel'].includes(options.compiler)
   ) {
     options.skipSerializers = true;
-  }
-
-  if (options.skipSetupFile) {
-    // setupFile is always 'none'
-    options.setupFile = schemaDefaults.setupFile;
   }
 
   const project = readProjectConfiguration(tree, options.project);
